@@ -2,20 +2,34 @@
 
 **HireIQ** is a production-grade recruitment intelligence platform that utilizes an autonomous swarm of AI agents to perform deep-market research, skill-gap analysis, and salary benchmarking. 
 
-Built with **LangGraph**, **Groq**, and **ChromaDB**, it features a self-healing agentic loop, semantic memory caching, and full observability.
+Designed for high-accuracy market discovery, HireIQ moves beyond linear AI chains into a **stateful, self-healing agentic ecosystem.**
 
 ---
 
-## 🏗️ The Engineering Swarm (1% Architecture)
+## 🏗️ System Architecture: The "Swarm" Intelligence
 
-Unlike standard "linear" AI chains, HireIQ uses a **Stateful Directed Acyclic Graph (DAG)** to orchestrate 6 specialized agents:
+HireIQ is built on a **Stateful Directed Acyclic Graph (DAG)** orchestrated by **LangGraph**. This allows for iterative reasoning, recursive tool use, and autonomous error correction.
 
-1.  **The Parser:** Extracts Pydantic-validated intent from unstructured goals.
-2.  **The Architect:** Dynamically generates a custom research strategy.
-3.  **The Worker:** Executes high-speed web discovery via **Tavily AI**.
-4.  **The Judge:** An autonomous verifier that triggers **recursive backtracking** if data is missing or inconsistent.
-5.  **The Brain:** Performs semantic synthesis and market trend analysis.
-6.  **The Writer:** Compiles a professional Intelligence Briefing in Markdown.
+```mermaid
+graph TD
+    A[User Goal] --> B(Goal Parser)
+    B --> C(The Architect)
+    C --> D{Worker Swarm}
+    D --> E[Web Discovery]
+    E --> F(The Judge)
+    F -- "Missing Data" --> D
+    F -- "Validated" --> G(The Brain)
+    G --> H(The Writer)
+    H --> I[Intelligence Briefing]
+```
+
+### The 6-Agent Swarm:
+1.  **Goal Parser:** Extracts Pydantic-validated intent from unstructured human input.
+2.  **The Architect:** Dynamically constructs the research strategy and graph mapping.
+3.  **The Worker:** Bridges the LLM to the live web using the **Tavily Search API**.
+4.  **The Judge:** A recursive verification layer that triggers **autonomous backtracking** if data is inconsistent or insufficient.
+5.  **The Brain:** Performs semantic synthesis and market momentum analysis.
+6.  **The Writer:** Compiles the final briefing using a structured Markdown architecture.
 
 ---
 
@@ -29,68 +43,42 @@ Unlike standard "linear" AI chains, HireIQ uses a **Stateful Directed Acyclic Gr
 
 ---
 
-## 🛠️ Key Technical Highlights
+## 🛠️ Engineering Excellence
 
 ### 1. Observability with LangSmith 🕵️‍♂️
-HireIQ is fully integrated with **LangSmith**. This provides a full "black box recorder" for every agentic thought, tool call, and trace.
-- **Traceability:** Monitor sub-second reasoning steps across the multi-agent swarm.
-- **Hallucination Monitoring:** Use the LangSmith dashboard to score and verify agent outputs in real-time.
+HireIQ is fully integrated with **LangSmith**, providing a complete audit trail of every "thought" and tool call. 
+- **Traceability:** Real-time monitoring of sub-second reasoning steps.
+- **Evaluation:** Built-in hooks for monitoring hallucination rates and output quality.
 
-### 2. Reliability & E2E Testing 🧪
-We implemented a professional **Reliability Suite** using **Playwright + Pytest**:
-- **Backend Tests:** Validates FastAPI endpoints and task status polling.
-- **E2E Tests:** Browser-based tests that simulate user behavior, verify the **React Flow** graph animations, and validate report generation.
+### 2. Semantic Memory & Hybrid Persistence 🧠
+- **ChromaDB Vector Cache:** Uses `all-MiniLM-L6-v2` embeddings to reuse knowledge, slashing costs by 90%+.
+- **SQLite Relational DB:** Tracks task metadata, execution plans, and persistent historical states.
 
-### 3. Semantic Memory & Hybrid Persistence 🧠
-- **ChromaDB:** Implements a semantic cache layer using `all-MiniLM-L6-v2` embeddings to reuse knowledge and slash costs.
-- **SQLite:** Handles relational task history and execution plans for persistent state tracking.
+### 3. Reliability & E2E Testing 🧪
+Engineered with a professional **Test Suite** using **Playwright + Pytest**:
+- **Backend Unit Tests:** Validates FastAPI endpoint integrity.
+- **E2E Integration Tests:** Simulates full user journeys—verifying **React Flow** animations and report generation.
 
-### 4. Interactive UI (React Flow + Streaming) ⚡
-- **Real-time Swarm Map:** A dynamic SVG graph that lights up as the agent moves through nodes.
-- **Smart Typewriter:** Reports stream in real-time to simulate live synthesis.
-
----
-
-## 🛤️ Evolution & Documentation
-This project has undergone a significant engineering journey. For a deep-dive into the development process and technical blueprints, see:
-- [**JOURNEY.md**](./JOURNEY.md): The historical log of every engineering phase and major change.
-- [**/docs/SYSTEM_DESIGN.md**](./docs/SYSTEM_DESIGN.md): The high-level architectural blueprint.
-- [**/docs/AGENT_ORCHESTRATION.md**](./docs/AGENT_ORCHESTRATION.md): Deep-dive into LangGraph and backtracking logic.
-- [**/docs/MEMORY_STRATEGY.md**](./docs/MEMORY_STRATEGY.md): Hybrid persistence and semantic caching logic.
+### 4. Interactive UX ⚡
+- **Neural Map Visualization:** A dynamic React Flow graph that lights up as the agent moves through the swarm.
+- **Streaming Reports:** Real-time typewriter effects for high-perceived performance.
 
 ---
 
-## ⚡ Quick Start
+## 🛤️ Technical Deep-Dives
+For detailed engineering blueprints, visit the following:
+- [**System Design & Architecture**](./docs/SYSTEM_DESIGN.md)
+- [**Agent Orchestration & Backtracking**](./docs/AGENT_ORCHESTRATION.md)
+- [**Memory & Persistence Strategy**](./docs/MEMORY_STRATEGY.md)
+- [**The Engineering Journey**](./JOURNEY.md)
 
-### 1. Clone & Install
-```bash
-# Backend
-cd backend
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
+---
 
-# Frontend
-cd frontend
-npm install
-```
+## ⚡ Setup Guide
 
-### 2. Configure Environment
-Create a `.env` file in the `backend` folder based on `.env.example`:
-```env
-GROQ_API_KEY=your_key
-TAVILY_API_KEY=your_key
-LANGCHAIN_API_KEY=your_langsmith_key
-```
-
-### 3. Run
-```bash
-# Terminal 1 (Backend)
-python -m uvicorn src.api.main:app --reload
-
-# Terminal 2 (Frontend)
-npm run dev
-```
+1. **Install:** `pip install -r backend/requirements.txt` && `npm install --prefix frontend`
+2. **Configure:** Create `backend/.env` with `GROQ_API_KEY` and `TAVILY_API_KEY`.
+3. **Execute:** Run `uvicorn` (backend) and `npm run dev` (frontend).
 
 ---
 
