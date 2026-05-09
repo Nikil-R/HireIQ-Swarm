@@ -70,10 +70,6 @@ This document tracks the evolution of **HireIQ** from a simple research prototyp
 - **The Challenge:** Repeated research goals caused redundant execution cycles, high response latency, and unnecessary API costs. Initial cycles took nearly 2 minutes to complete from scratch.
 - **The Solution:** I integrated **Semantic Caching using ChromaDB embeddings**. The system now detects similarity between new and historical queries. For cache hits (similarity > 0.85), prior research results are reused, reducing response times from minutes to milliseconds and eliminating redundant LLM/Search costs.
 
-### 4. Repository Hygiene & Git History Management
-- **The Challenge:** During early development, accidental inclusion of internal environment files and dependency caches caused repository bloat and potential security leaks.
-- **The Solution:** I performed a surgical cleaning of the Git history using `git rm --cached` and refined the `.gitignore` patterns. This process reinforced the importance of repository hygiene and secure secret management in a production-ready codebase.
-
 ---
 
 ## 📈 Next Steps (Future Roadmap)
