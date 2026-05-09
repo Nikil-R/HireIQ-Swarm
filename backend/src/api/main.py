@@ -24,6 +24,11 @@ app.add_middleware(
 # Initialize the LangGraph application
 agent_graph = create_agent_graph()
 
+@app.get("/")
+def health_check():
+    """Root endpoint for Render health monitoring."""
+    return {"status": "online", "service": "HireIQ Swarm"}
+
 @app.on_event("startup")
 def on_startup():
     init_db()

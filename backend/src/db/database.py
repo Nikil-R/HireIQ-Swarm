@@ -4,7 +4,11 @@ from sqlalchemy.orm import sessionmaker
 from src.db.models import Base
 
 # Strictly use SQLite for simplicity and easy deployment
-DATABASE_URL = "sqlite:///./hireiq.db"
+# Use /data/hireiq.db if the persistent volume exists (Render), otherwise fallback to local
+if os.path.exists("/data"):
+    DATABASE_URL = "sqlite:////data/hireiq.db"
+else:
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./hireiq.db")
 
 engine = create_engine(
     DATABASE_URL, 
