@@ -47,6 +47,13 @@ This document tracks the evolution of **HireIQ** from a simple research prototyp
     - **Streaming UI:** Implemented a **Smart Typewriter** effect for report generation to simulate real-time AI synthesis.
     - **Enhanced Blueprint:** Added a production scalability roadmap (Redis, Celery, Pinecone).
 
+## 📍 Phase 7: The Reliability & Testing Phase
+- **Goal:** Ensure system stability and prevent regression in agentic logic.
+- **Key Actions:**
+    - **E2E Testing:** Implemented a **Playwright** suite to simulate full user journeys (Dashboard -> Swarm -> Report).
+    - **Backend Unit Testing:** Created a **Pytest** suite for FastAPI endpoint validation and task status polling.
+    - **DevOps Hardening:** Finalized `requirements.txt` with all testing dependencies and verified environment isolation.
+
 ---
 
 ## 📈 Next Steps (Future Roadmap)
