@@ -11,3 +11,4 @@ python-dotenv
 tavily-python
 chromadb
 sentence-transformers
+langsmith
