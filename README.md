@@ -1,47 +1,25 @@
-# 🛡️ HireIQ: Autonomous Multi-Agent Research Swarm
+# HireIQ: Autonomous Multi-Agent Research Swarm 🛡️🚀
 
-[![FastAPI](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![React](https://img.shields.io/badge/Frontend-React_19-61DAFB?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org/)
-[![LangGraph](https://img.shields.io/badge/Orchestration-LangGraph-000000?style=for-the-badge&logo=langchain&logoColor=white)](https://github.com/langchain-ai/langgraph)
-[![ChromaDB](https://img.shields.io/badge/Vector_DB-ChromaDB-3178C6?style=for-the-badge&logo=google-cloud&logoColor=white)](https://www.trychroma.com/)
-[![TailwindCSS](https://img.shields.io/badge/Styling-Tailwind_v4-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+**HireIQ** is a production-grade recruitment intelligence platform that utilizes an autonomous swarm of AI agents to perform deep-market research, skill-gap analysis, and salary benchmarking. 
 
-**HireIQ PRO** is an agentic AI platform designed to automate high-fidelity recruitment research. Unlike standard chatbots, HireIQ utilizes a **multi-agent swarm** and **dual-persistence memory** to conduct real-time web discovery, semantic synthesis, and autonomous verification.
+Built with **LangGraph**, **Groq**, and **ChromaDB**, it features a self-healing agentic loop, semantic memory caching, and full observability.
 
 ---
 
-## 🚀 The Core Innovation: "Agentic Backtracking"
-Most RAG (Retrieval-Augmented Generation) systems are linear. If they miss data, they fail. **HireIQ is cyclic.** 
+## 🏗️ The Engineering Swarm (1% Architecture)
 
-Our **LangGraph-based DAG** architecture allows the system to:
-1. **Self-Critique:** The "Judge" agent verifies if the findings meet the user's research goal.
-2. **Backtrack:** If data is insufficient, the state is rewound, and the "Worker" is re-dispatched with a refinement prompt.
-3. **Self-Heal:** Automatic retry loops handle API failures or empty search results without human intervention.
+Unlike standard "linear" AI chains, HireIQ uses a **Stateful Directed Acyclic Graph (DAG)** to orchestrate 6 specialized agents:
 
----
-
-## 🧠 System Architecture
-
-```mermaid
-graph TD
-    A[User Input: Research Goal] --> B{Semantic Memory Check}
-    B -- Match Found > 0.85 --> C[Instant Report Retrieval]
-    B -- Cache Miss --> D[Goal Parser Agent]
-    D --> E[The Architect: Strategy Node]
-    E --> F[The Worker: Tavily Search Node]
-    F --> G[The Judge: Verifier Node]
-    G -- Data Incomplete --> F
-    G -- Verified --> H[The Brain: Synthesis Node]
-    H --> I[The Writer: Report Gen Node]
-    I --> J[ChromaDB: Vector Storage]
-    I --> K[Final Intelligence Briefing]
-```
+1.  **The Parser:** Extracts Pydantic-validated intent from unstructured goals.
+2.  **The Architect:** Dynamically generates a custom research strategy.
+3.  **The Worker:** Executes high-speed web discovery via **Tavily AI**.
+4.  **The Judge:** An autonomous verifier that triggers **recursive backtracking** if data is missing or inconsistent.
+5.  **The Brain:** Performs semantic synthesis and market trend analysis.
+6.  **The Writer:** Compiles a professional Intelligence Briefing in Markdown.
 
 ---
 
 ## 📊 System Performance & Efficiency
-
-HireIQ is engineered for high-throughput market discovery with a focus on minimizing LLM token waste and maximizing research speed.
 
 | Metric | With Cold Cache (New Quest) | With Semantic Memory (Hit) | Improvement |
 | :--- | :--- | :--- | :--- |
@@ -49,61 +27,72 @@ HireIQ is engineered for high-throughput market discovery with a focus on minimi
 | **LLM Token Cost** | ~$0.12 (Input + Output) | **$0.00** | **100% Saved** |
 | **Web API Usage** | 5-10 Search Calls | **0 Calls** | **Infinitely Scalable** |
 
-### 🛠️ Engineering Highlights
+---
 
-### 1. Semantic Memory Layer (ChromaDB)
-To optimize costs and latency, we implemented a **Vector Cache**. Every research quest is embedded using `all-MiniLM-L6-v2`. Before launching a 40-second agent loop, the system checks ChromaDB. If a similar quest exists (similarity > 0.85), it serves the report instantly.
+## 🛠️ Key Technical Highlights
 
-### 2. Dual-Persistence Strategy
-*   **Relational (SQLite):** Tracks task metadata, execution steps, and historical logs.
-*   **Vector (ChromaDB):** Stores semantic embeddings for long-term knowledge retrieval.
+### 1. Observability with LangSmith 🕵️‍♂️
+HireIQ is fully integrated with **LangSmith**. This provides a full "black box recorder" for every agentic thought, tool call, and trace.
+- **Traceability:** Monitor sub-second reasoning steps across the multi-agent swarm.
+- **Hallucination Monitoring:** Use the LangSmith dashboard to score and verify agent outputs in real-time.
 
-### 3. Real-Time Pipeline Visualization
-The frontend utilizes a state-driven dashboard that polls the backend API to show exactly which node in the graph is currently executing, providing full transparency into the "Agent's thoughts."
+### 2. Reliability & E2E Testing 🧪
+We implemented a professional **Reliability Suite** using **Playwright + Pytest**:
+- **Backend Tests:** Validates FastAPI endpoints and task status polling.
+- **E2E Tests:** Browser-based tests that simulate user behavior, verify the **React Flow** graph animations, and validate report generation.
+
+### 3. Semantic Memory & Hybrid Persistence 🧠
+- **ChromaDB:** Implements a semantic cache layer using `all-MiniLM-L6-v2` embeddings to reuse knowledge and slash costs.
+- **SQLite:** Handles relational task history and execution plans for persistent state tracking.
+
+### 4. Interactive UI (React Flow + Streaming) ⚡
+- **Real-time Swarm Map:** A dynamic SVG graph that lights up as the agent moves through nodes.
+- **Smart Typewriter:** Reports stream in real-time to simulate live synthesis.
 
 ---
 
-## 📦 Installation & Setup
+## 🛤️ Evolution & Documentation
+This project has undergone a significant engineering journey. For a deep-dive into the development process and technical blueprints, see:
+- [**JOURNEY.md**](./JOURNEY.md): The historical log of every engineering phase and major change.
+- [**/docs/SYSTEM_DESIGN.md**](./docs/SYSTEM_DESIGN.md): The high-level architectural blueprint.
+- [**/docs/AGENT_ORCHESTRATION.md**](./docs/AGENT_ORCHESTRATION.md): Deep-dive into LangGraph and backtracking logic.
+- [**/docs/MEMORY_STRATEGY.md**](./docs/MEMORY_STRATEGY.md): Hybrid persistence and semantic caching logic.
 
-### Prerequisites
-* Python 3.10+
-* Node.js 18+
-* Groq API Key (Llama 3 70B)
-* Tavily AI API Key
+---
 
-### Backend Setup
+## ⚡ Quick Start
+
+### 1. Clone & Install
 ```bash
+# Backend
 cd backend
 python -m venv venv
-source venv/bin/activate  # or venv\Scripts\activate on Windows
+source venv/bin/activate
 pip install -r requirements.txt
-# Create a .env file and add your keys:
-# GROQ_API_KEY=your_key
-# TAVILY_API_KEY=your_key
-python -m uvicorn src.api.main:app --reload --port 8000
-```
 
-### Frontend Setup
-```bash
+# Frontend
 cd frontend
 npm install
+```
+
+### 2. Configure Environment
+Create a `.env` file in the `backend` folder based on `.env.example`:
+```env
+GROQ_API_KEY=your_key
+TAVILY_API_KEY=your_key
+LANGCHAIN_API_KEY=your_langsmith_key
+```
+
+### 3. Run
+```bash
+# Terminal 1 (Backend)
+python -m uvicorn src.api.main:app --reload
+
+# Terminal 2 (Frontend)
 npm run dev
 ```
 
 ---
 
-## 🎯 Example Quests
-* *"Compare AI Engineer vs ML Engineer salaries and skills in Bangalore for 2026."*
-* *"Find top hiring companies and salary ranges for Data Engineers in Hyderabad."*
-* *"Research emerging tech skills in the Pune startup ecosystem."*
-
----
-
-## 👨‍💻 Developed By
-**Nikil R**  
-*Backend & AI Engineer specializing in Multi-Agent Systems & RAG Architectures.*
-
----
-
-## 📜 License
-This project is for portfolio demonstration purposes only. MIT License.
+## 📝 License
+Distributed under the MIT License. See `LICENSE` for more information.
