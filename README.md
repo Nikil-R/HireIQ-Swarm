@@ -70,7 +70,6 @@ For detailed engineering blueprints, visit the following:
 - [**System Design & Architecture**](./docs/SYSTEM_DESIGN.md)
 - [**Agent Orchestration & Backtracking**](./docs/AGENT_ORCHESTRATION.md)
 - [**Memory & Persistence Strategy**](./docs/MEMORY_STRATEGY.md)
-- [**The Engineering Journey**](./JOURNEY.md)
 
 ---
 
