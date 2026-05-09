@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import { 
@@ -14,7 +14,6 @@ import {
   Play, 
   Loader2, 
   CheckCircle2, 
-  Circle, 
   AlertCircle, 
   FileText, 
   LayoutList, 
@@ -33,10 +32,7 @@ import {
   Database,
   Globe,
   BookOpen,
-  Wrench,
-  Boxes,
   Code2,
-  Terminal,
   RefreshCcw,
   Scale,
   Target
@@ -46,28 +42,87 @@ import {
 const AgentNode = ({ data }) => {
   const { label, state, icon: Icon } = data;
   
-  const getStyles = () => {
-    if (state === "running") return "bg-blue-600 border-blue-400 text-white shadow-xl shadow-blue-200 scale-110 animate-pulse";
-    if (state === "completed") return "bg-emerald-500 border-emerald-300 text-white";
-    return "bg-white border-slate-200 text-slate-400 opacity-50";
+  const getStatusStyles = () => {
+    switch(state) {
+      case "running":
+        return {
+          container: "border-blue-500 bg-blue-50 shadow-[0_0_20px_rgba(59,130,246,0.2)]",
+          iconBg: "bg-blue-500 text-white animate-pulse",
+          text: "text-blue-900"
+        };
+      case "completed":
+        return {
+          container: "border-emerald-500 bg-emerald-50",
+          iconBg: "bg-emerald-500 text-white",
+          text: "text-emerald-900"
+        };
+      default:
+        return {
+          container: "border-slate-200 bg-white opacity-40",
+          iconBg: "bg-slate-100 text-slate-400",
+          text: "text-slate-400"
+        };
+    }
   };
 
+  const styles = getStatusStyles();
+
   return (
-    <div className={`px-4 py-3 rounded-2xl border-2 transition-all duration-500 flex items-center gap-3 min-w-[160px] ${getStyles()}`}>
-      <Handle type="target" position={Position.Top} className="opacity-0" />
-      <div className={`p-2 rounded-lg ${state === "running" ? "bg-white/20" : state === "completed" ? "bg-white/20" : "bg-slate-50"}`}>
-        {state === "running" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Icon className="w-4 h-4" />}
+    <div className={`flex flex-col items-center gap-2 transition-all duration-500 ${styles.container} border-2 px-6 py-4 rounded-xl min-w-[200px]`}>
+      <Handle type="target" position={Position.Top} className="!bg-slate-300" />
+      
+      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${styles.iconBg} transition-colors duration-500`}>
+        {state === "running" ? <Loader2 className="w-5 h-5 animate-spin" /> : <Icon className="w-5 h-5" />}
       </div>
-      <div className="flex flex-col">
-        <span className="text-[8px] font-black uppercase tracking-widest opacity-70">Agent Node</span>
-        <span className="text-[10px] font-bold uppercase tracking-tight leading-none">{label}</span>
+      
+      <div className="text-center">
+        <h4 className={`text-xs font-black uppercase tracking-widest ${styles.text}`}>{label}</h4>
+        {state === "running" && (
+          <p className="text-[10px] font-bold text-blue-500 animate-pulse mt-1">PROCESSING...</p>
+        )}
       </div>
-      <Handle type="source" position={Position.Bottom} className="opacity-0" />
+
+      <Handle type="source" position={Position.Bottom} className="!bg-slate-300" />
     </div>
   );
 };
 
 const nodeTypes = { agent: AgentNode };
+
+const nodesList = [
+  { id: "starting", label: "Initialization", icon: Zap },
+  { id: "goal_parser", label: "Goal Analysis", icon: Search },
+  { id: "planner", label: "Strategic Planning", icon: LayoutList },
+  { id: "executor", label: "Tool Execution", icon: Cpu },
+  { id: "verifier", label: "Data Verification", icon: ShieldCheck },
+  { id: "synthesizer", label: "Knowledge Synthesis", icon: BrainCircuit },
+  { id: "report_generator", label: "Report Generation", icon: PenTool }
+];
+
+const exampleQuests = [
+  { label: "AI vs ML (Bangalore)", text: "Compare AI Engineer vs ML Engineer salaries and skills in Bangalore", icon: <TrendingUp className="w-3 h-3" /> },
+  { label: "Hyderabad Data Jobs", text: "Find top hiring companies and salary ranges for Data Engineers in Hyderabad", icon: <MapPin className="w-3 h-3" /> },
+  { label: "Pune Tech Hub", text: "Research emerging tech skills in the Pune startup ecosystem for 2026", icon: <Briefcase className="w-3 h-3" /> },
+  { label: "India Remote Trends", text: "What are the current trends for remote software engineering roles in India?", icon: <Sparkles className="w-3 h-3" /> },
+  { label: "Product Cos (BLR)", text: "List top 10 AI-focused product companies in Bangalore and their required stack", icon: <LayoutList className="w-3 h-3" /> }
+];
+
+const agents = [
+  { name: "Goal Parser", role: "Semantic Entryway", icon: <Zap className="w-6 h-6 text-yellow-500" />, desc: "Uses few-shot prompting to extract Pydantic-validated schemas from raw human intent." },
+  { name: "The Architect", role: "Strategy Engine", icon: <FileText className="w-6 h-6 text-blue-500" />, desc: "Determines the complexity of the quest and dynamic node mapping into a DAG execution plan." },
+  { name: "The Worker", role: "Tool Specialist", icon: <Cpu className="w-6 h-6 text-purple-500" />, desc: "Bridges the LLM to the real-time web using the Tavily Search API." },
+  { name: "The Judge", role: "Consistency Guard", icon: <ShieldCheck className="w-6 h-6 text-emerald-500" />, desc: "A recursive verification layer that scores output and triggers autonomous backtracking loops." },
+  { name: "The Brain", role: "Knowledge Aggregator", icon: <BrainCircuit className="w-6 h-6 text-pink-500" />, desc: "Performs semantic synthesis to identify market momentum and skill gaps." },
+  { name: "The Writer", role: "Report Architect", icon: <PenTool className="w-6 h-6 text-slate-700" />, desc: "Compiles the final intelligence briefing using a structured Markdown template." }
+];
+
+const tools = [
+  { name: "Tavily AI", role: "Search Infrastructure", desc: "Optimized search engine providing noise-free context for RAG.", icon: <Globe className="w-5 h-5 text-blue-400" /> },
+  { name: "Groq Llama 3", role: "Inference Engine", desc: "Powers reasoning with extremely low-latency multi-agent loops.", icon: <Zap className="w-5 h-5 text-orange-400" /> },
+  { name: "LangGraph", role: "State Orchestrator", desc: "Manages graph states, persistence, and recursive node backtracking.", icon: <Workflow className="w-5 h-5 text-blue-600" /> },
+  { name: "ChromaDB", role: "Vector Memory", desc: "Converts past reports into vector embeddings for fast similarity retrieval.", icon: <BrainCircuit className="w-5 h-5 text-pink-400" /> },
+  { name: "SQLAlchemy", role: "Relational ORM", desc: "Handles the SQLite persistence layer for historical data logging.", icon: <Database className="w-5 h-5 text-slate-600" /> }
+];
 
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard"); 
@@ -109,11 +164,18 @@ function App() {
       const res = await axios.get(`${API_URL}/report/${taskId}`);
       setReport(res.data.report);
       setDisplayedReport(""); // Reset typewriter
-      const memRes = await axios.get(`${API_URL}/memory/${taskId}`);
-      setMemoryInfo(memRes.data);
     } catch (err) {
       console.error("Failed to download report", err);
       setError("Failed to download the final intelligence report.");
+      return;
+    }
+
+    try {
+      const memRes = await axios.get(`${API_URL}/memory/${taskId}`);
+      setMemoryInfo(memRes.data);
+    } catch (err) {
+      console.error("Failed to fetch semantic memory", err);
+      // Don't set global error, just log it as report is still available
     }
   }, [API_URL, taskId]);
 
@@ -137,7 +199,8 @@ function App() {
       setTaskId(res.data.task_id);
     } catch (err) {
       console.error("Backend Connection Error:", err);
-      setError(`Failed to connect to the HireIQ backend at ${API_URL}. Check your Vercel Environment Variables.`);
+      const detail = err.response?.data?.detail || err.message || "Unknown Error";
+      setError(`Backend Error at ${API_URL}: ${detail}. Check Vercel Environment Variables and Render service status.`);
       setLoading(false);
     }
   };
@@ -180,19 +243,9 @@ function App() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [taskId, status, fetchReport, fetchRecentTasks]);
+  }, [taskId, status, fetchReport, fetchRecentTasks, API_URL]);
 
-  const nodesList = [
-    { id: "starting", label: "Initialization", icon: Zap },
-    { id: "goal_parser", label: "Goal Analysis", icon: Search },
-    { id: "planner", label: "Strategic Planning", icon: LayoutList },
-    { id: "executor", label: "Tool Execution", icon: Cpu },
-    { id: "verifier", label: "Data Verification", icon: ShieldCheck },
-    { id: "synthesizer", label: "Knowledge Synthesis", icon: BrainCircuit },
-    { id: "report_generator", label: "Report Generation", icon: PenTool }
-  ];
-  
-  const getNodeState = (nodeId) => {
+  const getNodeState = useCallback((nodeId) => {
     if (!status) return "pending";
     if (status.status === "completed") return "completed";
     const currentIndex = nodesList.findIndex(n => n.id === status.current_node);
@@ -200,7 +253,7 @@ function App() {
     if (thisIndex < currentIndex) return "completed";
     if (thisIndex === currentIndex) return "running";
     return "pending";
-  };
+  }, [status]);
 
   // --- REACT FLOW GRAPH DATA ---
   const flowNodes = useMemo(() => {
@@ -208,10 +261,10 @@ function App() {
       id: n.id,
       type: 'agent',
       data: { label: n.label, icon: n.icon, state: getNodeState(n.id) },
-      position: { x: 50, y: i * 100 },
+      position: { x: 50, y: i * 140 },
       draggable: false,
     }));
-  }, [status]);
+  }, [getNodeState]);
 
   const flowEdges = useMemo(() => {
     return nodesList.slice(0, -1).map((n, i) => ({
@@ -219,70 +272,46 @@ function App() {
       source: n.id,
       target: nodesList[i+1].id,
       animated: getNodeState(n.id) === "running" || (getNodeState(n.id) === "completed" && getNodeState(nodesList[i+1].id) === "running"),
-      style: { stroke: getNodeState(n.id) === "completed" ? "#10b981" : "#e2e8f0", strokeWidth: 2 },
+      style: { 
+        stroke: getNodeState(n.id) === "completed" ? "#10b981" : "#cbd5e1", 
+        strokeWidth: 2 
+      },
+      type: 'smoothstep',
+      markerEnd: {
+        type: 'arrowclosed',
+        color: getNodeState(n.id) === "completed" ? "#10b981" : "#cbd5e1",
+      },
     }));
-  }, [status]);
-
-  const exampleQuests = [
-    { label: "AI vs ML (Bangalore)", text: "Compare AI Engineer vs ML Engineer salaries and skills in Bangalore", icon: <TrendingUp className="w-3 h-3" /> },
-    { label: "Hyderabad Data Jobs", text: "Find top hiring companies and salary ranges for Data Engineers in Hyderabad", icon: <MapPin className="w-3 h-3" /> },
-    { label: "Pune Tech Hub", text: "Research emerging tech skills in the Pune startup ecosystem for 2026", icon: <Briefcase className="w-3 h-3" /> },
-    { label: "India Remote Trends", text: "What are the current trends for remote software engineering roles in India?", icon: <Sparkles className="w-3 h-3" /> },
-    { label: "Product Cos (BLR)", text: "List top 10 AI-focused product companies in Bangalore and their required stack", icon: <LayoutList className="w-3 h-3" /> }
-  ];
-
-  const agents = [
-    { name: "Goal Parser", role: "Semantic Entryway", icon: <Zap className="w-6 h-6 text-yellow-500" />, desc: "Uses few-shot prompting to extract Pydantic-validated schemas from raw human intent." },
-    { name: "The Architect", role: "Strategy Engine", icon: <FileText className="w-6 h-6 text-blue-500" />, desc: "Determines the complexity of the quest and dynamic node mapping into a DAG execution plan." },
-    { name: "The Worker", role: "Tool Specialist", icon: <Cpu className="w-6 h-6 text-purple-500" />, desc: "Bridges the LLM to the real-time web using the Tavily Search API." },
-    { name: "The Judge", role: "Consistency Guard", icon: <ShieldCheck className="w-6 h-6 text-emerald-500" />, desc: "A recursive verification layer that scores output and triggers autonomous backtracking loops." },
-    { name: "The Brain", role: "Knowledge Aggregator", icon: <BrainCircuit className="w-6 h-6 text-pink-500" />, desc: "Performs semantic synthesis to identify market momentum and skill gaps." },
-    { name: "The Writer", role: "Report Architect", icon: <PenTool className="w-6 h-6 text-slate-700" />, desc: "Compiles the final intelligence briefing using a structured Markdown template." }
-  ];
-
-  const tools = [
-    { name: "Tavily AI", role: "Search Infrastructure", desc: "Optimized search engine providing noise-free context for RAG.", icon: <Globe className="w-5 h-5 text-blue-400" /> },
-    { name: "Groq Llama 3", role: "Inference Engine", desc: "Powers reasoning with extremely low-latency multi-agent loops.", icon: <Zap className="w-5 h-5 text-orange-400" /> },
-    { name: "LangGraph", role: "State Orchestrator", desc: "Manages graph states, persistence, and recursive node backtracking.", icon: <Workflow className="w-5 h-5 text-blue-600" /> },
-    { name: "ChromaDB", role: "Vector Memory", desc: "Converts past reports into vector embeddings for fast similarity retrieval.", icon: <BrainCircuit className="w-5 h-5 text-pink-400" /> },
-    { name: "SQLAlchemy", role: "Relational ORM", desc: "Handles the SQLite persistence layer for historical data logging.", icon: <Database className="w-5 h-5 text-slate-600" /> }
-  ];
+  }, [getNodeState]);
 
   return (
     <div className="min-h-screen bg-[#f8fafc] text-slate-900 font-['Inter'] selection:bg-blue-100">
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 no-print">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
+      {/* NAVBAR */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200 no-print">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setActiveTab("dashboard")}>
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200 group-hover:scale-110 transition-transform">
+              <Zap className="text-white w-6 h-6" />
             </div>
-            <span className="font-bold text-xl tracking-tight text-slate-800">HireIQ <span className="text-blue-600 font-black">SWARM</span></span>
-          </div>
-          
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
-            {[
-              { id: "dashboard", label: "Dashboard", icon: <LayoutList className="w-3 h-3" /> },
-              { id: "blueprint", label: "Technical Blueprint", icon: <BookOpen className="w-3 h-3" /> }
-            ].map((tab) => (
-              <button 
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center gap-2 ${
-                  activeTab === tab.id ? "bg-white text-blue-600 shadow-sm" : "text-slate-400 hover:text-slate-600"
-                }`}
-              >
-                {tab.icon}
-                {tab.label}
-              </button>
-            ))}
+            <div className="flex flex-col">
+              <span className="text-lg font-black tracking-tighter uppercase leading-none">HireIQ</span>
+              <span className="text-[10px] font-bold text-blue-600 uppercase tracking-widest leading-none">Swarm Agent</span>
+            </div>
           </div>
 
-          <div className="hidden md:flex items-center gap-3">
-             <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-600 rounded-full border border-emerald-100">
-               <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-               <span className="text-[10px] font-black uppercase tracking-wider">Engine Online</span>
-             </div>
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl border border-slate-200">
+            <button 
+              onClick={() => setActiveTab("dashboard")}
+              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === "dashboard" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            >
+              Dashboard
+            </button>
+            <button 
+              onClick={() => setActiveTab("blueprint")}
+              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all ${activeTab === "blueprint" ? "bg-white text-blue-600 shadow-sm" : "text-slate-500 hover:text-slate-700"}`}
+            >
+              Blueprint
+            </button>
           </div>
         </div>
       </nav>
@@ -297,7 +326,6 @@ function App() {
             <p className="text-slate-500 mt-6 text-xl font-medium leading-relaxed">Define your research goal and let our autonomous agent swarm orchestrate real-time web discovery and semantic synthesis.</p>
             
             <div className="relative group max-w-3xl mx-auto mt-10">
-              <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
               <div className="relative flex gap-3 bg-white p-2 rounded-2xl border border-slate-200 shadow-xl shadow-slate-200/50">
                 <div className="flex-1 relative flex items-center">
                   <Search className="absolute left-4 w-5 h-5 text-slate-400" />
@@ -347,9 +375,9 @@ function App() {
               <div className="lg:col-span-1 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-8 flex flex-col min-h-[500px]">
                 <h3 className="font-black text-slate-800 flex items-center gap-2 uppercase tracking-widest text-xs">
                   <Workflow className="w-4 h-4 text-blue-600" />
-                  Live Swarm Map
+                  RECRUITMENT AGENT ORCHESTRATION
                 </h3>
-                <div className="flex-1 bg-slate-50/50 rounded-2xl border border-slate-100 overflow-hidden relative">
+                <div className="flex-1 bg-white rounded-2xl border border-slate-200 overflow-hidden relative">
                    <ReactFlow 
                     nodes={flowNodes} 
                     edges={flowEdges} 
@@ -360,7 +388,8 @@ function App() {
                     panOnDrag={false}
                     preventScrolling={true}
                    >
-                    <Background color="#cbd5e1" gap={20} />
+                    {/* Clean background without dots for a professional look */}
+
                    </ReactFlow>
                 </div>
               </div>

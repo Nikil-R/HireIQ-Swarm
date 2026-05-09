@@ -5,9 +5,11 @@ from src.db.models import Base
 
 # Strictly use SQLite for simplicity and easy deployment
 # Use an absolute path for the SQLite file to ensure Render can always open it
+# Check for a persistent mount path (e.g. Render Disk)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-db_path = os.path.join(BASE_DIR, "hireiq.db")
+db_path = os.getenv("DATABASE_PATH", os.path.join(BASE_DIR, "hireiq.db"))
 DATABASE_URL = f"sqlite:///{db_path}"
+print(f"--- DATABASE INITIALIZED AT: {db_path} ---")
 
 engine = create_engine(
     DATABASE_URL, 

@@ -16,7 +16,7 @@ app = FastAPI(title="HireIQ API", description="Autonomous Recruitment Intelligen
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False, # Changed from True to avoid issues with allow_origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -99,10 +99,18 @@ async def execute_goal(request: ExecuteRequest, background_tasks: BackgroundTask
     """
     Receives a goal, creates a task ID, triggers the agent in the background.
     """
+    print(f"--- INCOMING REQUEST: {request.goal} ---")
     task_id = str(uuid.uuid4())
     
-    # First, check if a similar goal exists in ChromaDB
-    similar_reports = find_similar_goals(request.goal, n_results=1)
+    try:
+        # First, check if a similar goal exists in ChromaDB
+        print("Checking semantic memory...")
+        similar_reports = find_similar_goals(request.goal, n_results=1)
+        print(f"Semantic search complete. Found {len(similar_reports)} matches.")
+    except Exception as e:
+        print(f"CRITICAL ERROR in semantic search: {e}")
+        # Continue anyway, don't let memory failure stop the agent
+        similar_reports = []
     
     # Initialize task status in DB
     new_task = TaskRecord(
@@ -113,11 +121,17 @@ async def execute_goal(request: ExecuteRequest, background_tasks: BackgroundTask
         percentage_complete=0,
         retry_count=0
     )
-    db.add(new_task)
-    db.commit()
+    try:
+        db.add(new_task)
+        db.commit()
+        print(f"Task {task_id} initialized in SQLite.")
+    except Exception as e:
+        print(f"CRITICAL ERROR in DB initialization: {e}")
+        raise HTTPException(status_code=500, detail="Failed to initialize task in database.")
     
     # Trigger background execution
     background_tasks.add_task(run_agent_task, task_id, request.goal)
+    print(f"Background task triggered for {task_id}.")
     
     response = {"task_id": task_id, "status": "Task started in background."}
     
@@ -185,6 +199,7 @@ async def get_history(db: Session = Depends(get_db)):
     return {"history": history}
 
 
+@app.get("/memory/{task_id}")
 @app.get("/similar/{task_id}")
 async def get_similar_reports(task_id: str, db: Session = Depends(get_db)):
     """

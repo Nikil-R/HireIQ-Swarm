@@ -3,7 +3,8 @@ import os
 
 # Use an absolute path for ChromaDB to ensure Render can always open it
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-CHROMA_PATH = os.path.join(BASE_DIR, "chroma_db")
+CHROMA_PATH = os.getenv("CHROMA_PATH", os.path.join(BASE_DIR, "chroma_db"))
+print(f"--- CHROMA_DB INITIALIZED AT: {CHROMA_PATH} ---")
 
 # Initialize ChromaDB persistent client
 client = chromadb.PersistentClient(path=CHROMA_PATH)
