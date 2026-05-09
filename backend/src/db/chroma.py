@@ -1,11 +1,9 @@
 import chromadb
 import os
 
-# Use /data/chroma_db if the persistent volume exists (Render), otherwise fallback to local
-if os.path.exists("/data"):
-    CHROMA_PATH = "/data/chroma_db"
-else:
-    CHROMA_PATH = os.getenv("CHROMA_PATH", "./chroma_db")
+# Use an absolute path for ChromaDB to ensure Render can always open it
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+CHROMA_PATH = os.path.join(BASE_DIR, "chroma_db")
 
 # Initialize ChromaDB persistent client
 client = chromadb.PersistentClient(path=CHROMA_PATH)

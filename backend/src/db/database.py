@@ -4,11 +4,10 @@ from sqlalchemy.orm import sessionmaker
 from src.db.models import Base
 
 # Strictly use SQLite for simplicity and easy deployment
-# Use /data/hireiq.db if the persistent volume exists (Render), otherwise fallback to local
-if os.path.exists("/data"):
-    DATABASE_URL = "sqlite:////data/hireiq.db"
-else:
-    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./hireiq.db")
+# Use an absolute path for the SQLite file to ensure Render can always open it
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+db_path = os.path.join(BASE_DIR, "hireiq.db")
+DATABASE_URL = f"sqlite:///{db_path}"
 
 engine = create_engine(
     DATABASE_URL, 
