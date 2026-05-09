@@ -1,6 +1,14 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
+import { 
+  ReactFlow, 
+  Background, 
+  Handle, 
+  Position 
+} from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
+
 import { 
   Search, 
   Play, 
@@ -34,18 +42,57 @@ import {
   Target
 } from 'lucide-react';
 
+// --- CUSTOM GRAPH NODE COMPONENT ---
+const AgentNode = ({ data }) => {
+  const { label, state, icon: Icon } = data;
+  
+  const getStyles = () => {
+    if (state === "running") return "bg-blue-600 border-blue-400 text-white shadow-xl shadow-blue-200 scale-110 animate-pulse";
+    if (state === "completed") return "bg-emerald-500 border-emerald-300 text-white";
+    return "bg-white border-slate-200 text-slate-400 opacity-50";
+  };
+
+  return (
+    <div className={`px-4 py-3 rounded-2xl border-2 transition-all duration-500 flex items-center gap-3 min-w-[160px] ${getStyles()}`}>
+      <Handle type="target" position={Position.Top} className="opacity-0" />
+      <div className={`p-2 rounded-lg ${state === "running" ? "bg-white/20" : state === "completed" ? "bg-white/20" : "bg-slate-50"}`}>
+        {state === "running" ? <Loader2 className="w-4 h-4 animate-spin" /> : <Icon className="w-4 h-4" />}
+      </div>
+      <div className="flex flex-col">
+        <span className="text-[8px] font-black uppercase tracking-widest opacity-70">Agent Node</span>
+        <span className="text-[10px] font-bold uppercase tracking-tight leading-none">{label}</span>
+      </div>
+      <Handle type="source" position={Position.Bottom} className="opacity-0" />
+    </div>
+  );
+};
+
+const nodeTypes = { agent: AgentNode };
+
 function App() {
   const [activeTab, setActiveTab] = useState("dashboard"); 
   const [goal, setGoal] = useState("");
   const [taskId, setTaskId] = useState(null);
   const [status, setStatus] = useState(null);
   const [report, setReport] = useState(null);
+  const [displayedReport, setDisplayedReport] = useState("");
   const [memoryInfo, setMemoryInfo] = useState(null);
   const [recentTasks, setRecentTasks] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const API_URL = "http://localhost:8000";
+
+  // --- TYPEWRITER EFFECT ---
+  useEffect(() => {
+    if (report && displayedReport.length < report.length) {
+      const timeout = setTimeout(() => {
+        // Stream in chunks of 5 characters for better performance
+        setDisplayedReport(report.slice(0, displayedReport.length + 5));
+      }, 5);
+      return () => clearTimeout(timeout);
+    }
+  }, [report, displayedReport]);
 
   const fetchRecentTasks = useCallback(async () => {
     try {
@@ -61,6 +108,7 @@ function App() {
     try {
       const res = await axios.get(`${API_URL}/report/${taskId}`);
       setReport(res.data.report);
+      setDisplayedReport(""); // Reset typewriter
       const memRes = await axios.get(`${API_URL}/memory/${taskId}`);
       setMemoryInfo(memRes.data);
     } catch (err) {
@@ -79,6 +127,7 @@ function App() {
     setError(null);
     setStatus(null);
     setReport(null);
+    setDisplayedReport("");
     setMemoryInfo(null);
     setTaskId(null);
 
@@ -95,6 +144,7 @@ function App() {
     setTaskId(id);
     setGoal(oldGoal);
     setReport(null);
+    setDisplayedReport("");
     setLoading(true);
     setStatus({ status: "running", current_node: "report_generator", percentage_complete: 100 });
   };
@@ -131,13 +181,13 @@ function App() {
   }, [taskId, status, fetchReport, fetchRecentTasks]);
 
   const nodesList = [
-    { id: "starting", label: "Initialization" },
-    { id: "goal_parser", label: "Goal Analysis" },
-    { id: "planner", label: "Strategic Planning" },
-    { id: "executor", label: "Tool Execution" },
-    { id: "verifier", label: "Data Verification" },
-    { id: "synthesizer", label: "Knowledge Synthesis" },
-    { id: "report_generator", label: "Report Generation" }
+    { id: "starting", label: "Initialization", icon: Zap },
+    { id: "goal_parser", label: "Goal Analysis", icon: Search },
+    { id: "planner", label: "Strategic Planning", icon: LayoutList },
+    { id: "executor", label: "Tool Execution", icon: Cpu },
+    { id: "verifier", label: "Data Verification", icon: ShieldCheck },
+    { id: "synthesizer", label: "Knowledge Synthesis", icon: BrainCircuit },
+    { id: "report_generator", label: "Report Generation", icon: PenTool }
   ];
   
   const getNodeState = (nodeId) => {
@@ -149,6 +199,27 @@ function App() {
     if (thisIndex === currentIndex) return "running";
     return "pending";
   };
+
+  // --- REACT FLOW GRAPH DATA ---
+  const flowNodes = useMemo(() => {
+    return nodesList.map((n, i) => ({
+      id: n.id,
+      type: 'agent',
+      data: { label: n.label, icon: n.icon, state: getNodeState(n.id) },
+      position: { x: 50, y: i * 100 },
+      draggable: false,
+    }));
+  }, [status]);
+
+  const flowEdges = useMemo(() => {
+    return nodesList.slice(0, -1).map((n, i) => ({
+      id: `e${i}`,
+      source: n.id,
+      target: nodesList[i+1].id,
+      animated: getNodeState(n.id) === "running" || (getNodeState(n.id) === "completed" && getNodeState(nodesList[i+1].id) === "running"),
+      style: { stroke: getNodeState(n.id) === "completed" ? "#10b981" : "#e2e8f0", strokeWidth: 2 },
+    }));
+  }, [status]);
 
   const exampleQuests = [
     { label: "AI vs ML (Bangalore)", text: "Compare AI Engineer vs ML Engineer salaries and skills in Bangalore", icon: <TrendingUp className="w-3 h-3" /> },
@@ -271,33 +342,24 @@ function App() {
 
           {(status || loading) && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 no-print animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <div className="lg:col-span-1 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-8">
+              <div className="lg:col-span-1 bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-8 flex flex-col min-h-[500px]">
                 <h3 className="font-black text-slate-800 flex items-center gap-2 uppercase tracking-widest text-xs">
                   <Workflow className="w-4 h-4 text-blue-600" />
-                  Agent Orchestration
+                  Live Swarm Map
                 </h3>
-                <div className="relative space-y-1">
-                  <div className="absolute left-[15px] top-4 bottom-4 w-0.5 bg-slate-50"></div>
-                  {nodesList.map((node) => {
-                    const state = getNodeState(node.id);
-                    return (
-                      <div key={node.id} className="relative flex items-center gap-4 py-4 pl-0 group">
-                        <div className={`relative z-10 w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-700 ${
-                          state === "running" ? "bg-blue-600 border-blue-200 shadow-xl shadow-blue-200 scale-125" : 
-                          state === "completed" ? "bg-emerald-500 border-emerald-100" : 
-                          "bg-white border-slate-100"
-                        }`}>
-                          {state === "completed" ? <CheckCircle2 className="w-5 h-5 text-white" /> : 
-                           state === "running" ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : 
-                           <div className="w-1.5 h-1.5 bg-slate-200 rounded-full"></div>}
-                        </div>
-                        <span className={`text-[10px] font-black uppercase tracking-[0.2em] transition-colors ${
-                          state === "running" ? "text-blue-700" : 
-                          state === "completed" ? "text-slate-800" : "text-slate-300"
-                        }`}>{node.label}</span>
-                      </div>
-                    );
-                  })}
+                <div className="flex-1 bg-slate-50/50 rounded-2xl border border-slate-100 overflow-hidden relative">
+                   <ReactFlow 
+                    nodes={flowNodes} 
+                    edges={flowEdges} 
+                    nodeTypes={nodeTypes}
+                    fitView
+                    zoomOnScroll={false}
+                    zoomOnPinch={false}
+                    panOnDrag={false}
+                    preventScrolling={true}
+                   >
+                    <Background color="#cbd5e1" gap={20} />
+                   </ReactFlow>
                 </div>
               </div>
 
@@ -324,19 +386,28 @@ function App() {
             </div>
           )}
 
-          {report && (
+          {(displayedReport || report) && (
             <section className="report-section bg-white rounded-[2.5rem] border border-slate-200 shadow-2xl shadow-slate-200/50 overflow-hidden animate-in fade-in zoom-in-95 duration-1000">
               <div className="report-header bg-[#0f172a] px-12 py-10 text-white">
                 <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-600/20 text-blue-400 rounded-full border border-blue-500/20 text-[9px] font-black uppercase tracking-widest mb-3">Intelligence Briefing</div>
-                <h2 className="text-3xl font-black tracking-tight leading-tight uppercase">{status?.goal}</h2>
+                <h2 className="text-3xl font-black tracking-tight leading-tight uppercase">{status?.goal || goal}</h2>
               </div>
               {memoryInfo && memoryInfo.similar_reports?.length > 0 && (
                 <div className="px-12 py-4 bg-blue-50 border-b border-blue-100 flex items-center gap-3 no-print font-bold text-sm text-blue-800">
                   <BrainCircuit className="w-5 h-5 text-blue-600" /> Semantic Memory Found: <span className="text-xs text-blue-600 italic font-black uppercase tracking-widest">Historical Data Utilized</span>
                 </div>
               )}
-              <div className="px-12 py-16 prose prose-slate max-w-none">
-                <ReactMarkdown>{report}</ReactMarkdown>
+              <div className="px-12 py-16 prose prose-slate max-w-none relative">
+                {displayedReport.length < (report?.length || 0) && (
+                  <div className="absolute top-10 right-10 flex items-center gap-2 text-blue-600 text-[10px] font-black uppercase tracking-[0.2em] animate-pulse no-print">
+                    <div className="w-1 h-1 bg-blue-600 rounded-full"></div>
+                    Synthesizing...
+                  </div>
+                )}
+                <ReactMarkdown>{displayedReport || report}</ReactMarkdown>
+                {displayedReport.length < (report?.length || 0) && (
+                   <span className="inline-block w-2 h-4 bg-blue-600 ml-1 animate-pulse"></span>
+                )}
               </div>
               <div className="bg-slate-50 px-12 py-8 border-t border-slate-100 flex items-center justify-end no-print">
                 <button onClick={() => window.print()} className="px-8 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center gap-2">Download Report PDF <ArrowRight className="w-3 h-3" /></button>
