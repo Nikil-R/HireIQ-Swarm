@@ -132,10 +132,12 @@ function App() {
     setTaskId(null);
 
     try {
+      console.log("Connecting to HireIQ Backend at:", API_URL);
       const res = await axios.post(`${API_URL}/execute`, { goal });
       setTaskId(res.data.task_id);
     } catch (err) {
-      setError("Failed to connect to the HireIQ backend. Is it running on port 8000?");
+      console.error("Backend Connection Error:", err);
+      setError(`Failed to connect to the HireIQ backend at ${API_URL}. Check your Vercel Environment Variables.`);
       setLoading(false);
     }
   };
