@@ -33,7 +33,7 @@ class ExecuteRequest(BaseModel):
 
 def run_agent_task(task_id: str, goal: str):
     """
-    Background task that executes the LangGraph agent and updates status continuously in Postgres.
+    Background task that executes the LangGraph agent and updates status continuously in SQLite.
     Also stores to ChromaDB when complete.
     """
     db = next(get_db())
