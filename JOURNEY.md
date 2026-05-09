@@ -56,23 +56,23 @@ This document tracks the evolution of **HireIQ** from a simple research prototyp
 
 ---
 
-## 🛑 The "Real World" Struggle: Challenges & Breakthroughs
+## 🛑 Engineering Challenges & System Optimizations
 
-### 1. The "Infinite Loop" Panic
-- **The Struggle:** Early on, the agent got stuck in a loop where it kept searching for the same salary data over and over because it didn't like the currency format. It was a "token-burning" nightmare that almost drained my API credits in minutes.
-- **The Fix:** I realized the swarm needed a "Sanity Check." I built the **Judge Node** to act as a supervisor that enforces a hard retry limit and forces the agent to move on or refine its strategy if it gets stuck.
+### 1. Verifier-Executor Loop Stability (Infinite Retries)
+- **The Challenge:** Early iterations of the verifier-executor cycle entered repetitive retries when salary formats or skill data varied significantly across sources. This caused excessive token usage and unstable execution behavior.
+- **The Solution:** I introduced a **Judge/Verifier Node** with explicit retry limits and failure escalation logic. This prevents infinite execution loops by forcing the agent to either synthesize partial data or exit the loop with a clear error state after a predefined number of attempts.
 
-### 2. The "Blank Screen" Frustration
-- **The Struggle:** In the beginning, the backend would be "thinking" for 40 seconds, but the frontend was just a spinning wheel. It felt broken, even though it was working perfectly behind the scenes.
-- **The Fix:** This is why I built the **Real-time Pipeline Visualization**. I implemented a status polling system that "talks" to the agent nodes, so the user can actually see the swarm moving through its "Planner" and "Executor" stages. It turned a boring wait into an interactive experience.
+### 2. Async Workflow Visibility (UX Transparency)
+- **The Challenge:** Long-running agent workflows (~40-60s) created a poor user experience because the frontend had zero visibility into backend execution progress. The "black box" nature of the async process made the application feel unresponsive.
+- **The Solution:** I implemented real-time execution tracking using a **Node-level Status Polling system**. This allows the frontend to visualize progress across the specific Planner, Executor, and Verifier stages, providing system transparency and confirming backend health during long-running tasks.
 
-### 3. The "2-Minute Demo" Embarrassment
-- **The Struggle:** My first full research cycle took nearly 2 minutes to generate a report. I knew no recruiter would wait that long for a dashboard to load.
-- **The Fix:** The "Aha!" moment was discovering **Semantic Caching**. By integrating **ChromaDB**, I made it so the system "remembers" similar past quests. Seeing a 2-minute task suddenly load in **0.1 seconds** because of a cache hit was one of the biggest wins of this project.
+### 3. Redundant Execution Cycles (Latency Optimization)
+- **The Challenge:** Repeated research goals caused redundant execution cycles, high response latency, and unnecessary API costs. Initial cycles took nearly 2 minutes to complete from scratch.
+- **The Solution:** I integrated **Semantic Caching using ChromaDB embeddings**. The system now detects similarity between new and historical queries. For cache hits (similarity > 0.85), prior research results are reused, reducing response times from minutes to milliseconds and eliminating redundant LLM/Search costs.
 
-### 4. The "Accidental Bloat" (Git Lessons)
-- **The Struggle:** At one point, I accidentally committed the entire `node_modules` folder into the backend, bloating the repository and making it look unprofessional.
-- **The Fix:** Instead of just deleting the folder, I learned how to surgically clean the Git history using `git rm --cached`. It was a crash course in repository hygiene and the importance of a bulletproof `.gitignore`.
+### 4. Repository Hygiene & Git History Management
+- **The Challenge:** During early development, accidental inclusion of internal environment files and dependency caches caused repository bloat and potential security leaks.
+- **The Solution:** I performed a surgical cleaning of the Git history using `git rm --cached` and refined the `.gitignore` patterns. This process reinforced the importance of repository hygiene and secure secret management in a production-ready codebase.
 
 ---
 
