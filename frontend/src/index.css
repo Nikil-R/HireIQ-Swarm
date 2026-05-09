@@ -1,0 +1,65 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+
+@theme {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+body {
+  @apply bg-[#f8fafc] text-slate-900;
+  font-family: var(--font-sans);
+}
+
+/* Custom transitions */
+.node-transition {
+  transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-slate-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded-full hover:bg-slate-400 transition-colors;
+}
+
+/* Print media queries for clean PDF generation */
+@media print {
+  nav, .no-print, section:not(.report-section) {
+    display: none !important;
+  }
+  
+  body {
+    background: white !important;
+    padding: 0 !important;
+  }
+  
+  .report-section {
+    border: none !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .report-header {
+    color: black !important;
+    background: transparent !important;
+    padding: 0 0 20px 0 !important;
+    border-bottom: 2px solid #eee !important;
+  }
+
+  .report-header h2 {
+    color: black !important;
+    font-size: 24pt !important;
+  }
+  
+  .prose {
+    max-width: none !important;
+    font-size: 11pt !important;
+  }
+}
