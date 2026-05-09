@@ -56,6 +56,26 @@ This document tracks the evolution of **HireIQ** from a simple research prototyp
 
 ---
 
+## 🛑 Challenges & Engineering Solutions
+
+### 1. The "Dead End" Problem (Ambiguity)
+- **Challenge:** Early versions used linear chains. If the agent didn't find data in the first search, it would hallucinate or fail.
+- **Solution:** Implemented **LangGraph Cycles**. We added a "Judge" node that critiques the "Worker" node. If data is missing, the system autonomously backtracks to the search phase with a refined strategy.
+
+### 2. High Latency & Token Burn
+- **Challenge:** Running a 6-agent swarm for every query was slow (~45s) and expensive.
+- **Solution:** Engineered a **Semantic Cache** using **ChromaDB**. By embedding user goals, we achieved a 99.8% latency reduction for similar queries, serving results in <100ms.
+
+### 3. The "Black Box" of Multi-Agent Systems
+- **Challenge:** Debugging a multi-turn agentic conversation is nearly impossible with standard logs.
+- **Solution:** Integrated **LangSmith**. This provided a full visual trace of every "thought," tool call, and state transition, allowing us to pinpoint exactly where the reasoning failed.
+
+### 4. Regression in Complex Logic
+- **Challenge:** A small change in the "Planner" node would often break the "Synthesizer" node three steps later.
+- **Solution:** Implemented an **E2E Reliability Suite** with **Playwright**. We now simulate full user journeys automatically to catch regressions before they reach "production."
+
+---
+
 ## 📈 Next Steps (Future Roadmap)
 1. **Streaming UI:** Token-by-token report rendering.
 2. **Human-in-the-Loop:** Interactive strategy approval gates.
