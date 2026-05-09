@@ -16,10 +16,19 @@ app = FastAPI(title="HireIQ API", description="Autonomous Recruitment Intelligen
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=False, # Changed from True to avoid issues with allow_origins=["*"]
-    allow_methods=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
+
+@app.middleware("http")
+async def log_requests(request, call_next):
+    print(f"Request: {request.method} {request.url}")
+    response = await call_next(request)
+    print(f"Response: {response.status_code}")
+    return response
+
 
 # Initialize the LangGraph application
 agent_graph = create_agent_graph()
@@ -31,7 +40,15 @@ def health_check():
 
 @app.on_event("startup")
 def on_startup():
+    print("--- STARTING HIREIQ BACKEND ---")
     init_db()
+    try:
+        print("Warming up semantic memory (loading models)...")
+        # Trigger model loading on start so it doesn't block the first request
+        find_similar_goals("warmup query", n_results=1)
+        print("Semantic memory warmed up.")
+    except Exception as e:
+        print(f"Warmup failed (expected if DB is empty): {e}")
 
 class ExecuteRequest(BaseModel):
     goal: str

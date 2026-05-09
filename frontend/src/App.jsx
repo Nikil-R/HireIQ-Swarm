@@ -3,7 +3,6 @@ import axios from 'axios';
 import ReactMarkdown from 'react-markdown';
 import { 
   ReactFlow, 
-  Background, 
   Handle, 
   Position 
 } from '@xyflow/react';
@@ -31,7 +30,6 @@ import {
   History,
   Database,
   Globe,
-  BookOpen,
   Code2,
   RefreshCcw,
   Scale,
@@ -136,7 +134,17 @@ function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+  const API_URL = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
+  
+  // Health check on load
+  useEffect(() => {
+    console.log("Checking backend health at:", API_URL);
+    axios.get(API_URL).then(res => {
+      console.log("Backend is ALIVE:", res.data);
+    }).catch(err => {
+      console.warn("Backend health check failed. This might cause Network Errors.", err);
+    });
+  }, [API_URL]);
 
   // --- TYPEWRITER EFFECT ---
   useEffect(() => {
@@ -180,7 +188,12 @@ function App() {
   }, [API_URL, taskId]);
 
   useEffect(() => {
-    fetchRecentTasks();
+    let isMounted = true;
+    const loadData = async () => {
+      if (isMounted) await fetchRecentTasks();
+    };
+    loadData();
+    return () => { isMounted = false; };
   }, [fetchRecentTasks]);
 
   const handleExecute = async () => {
