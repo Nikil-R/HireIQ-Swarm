@@ -1,6 +1,6 @@
 # 🛤️ The Engineering Journey: Building HireIQ Swarm
 
-This document tracks the evolution of **HireIQ** from a simple research prototype to a "Top 1%" Autonomous Multi-Agent Swarm.
+This document tracks the evolution of **HireIQ** from a simple research prototype to a Autonomous Multi-Agent Swarm.
 
 ---
 
@@ -53,6 +53,13 @@ This document tracks the evolution of **HireIQ** from a simple research prototyp
     - **E2E Testing:** Implemented a **Playwright** suite to simulate full user journeys (Dashboard -> Swarm -> Report).
     - **Backend Unit Testing:** Created a **Pytest** suite for FastAPI endpoint validation and task status polling.
     - **DevOps Hardening:** Finalized `requirements.txt` with all testing dependencies and verified environment isolation.
+
+## 📍 Phase 8: Production Deployment (Vercel & Render)
+- **Goal:** Transition the system from a local development environment to a live, production-grade cloud architecture.
+- **Key Actions:**
+    - **Frontend Hosting:** Deployed the React dashboard to **Vercel** to leverage global edge delivery and optimized build performance.
+    - **Backend Infrastructure:** Migrated the FastAPI agent engine to **Render**, ensuring persistent disk storage for the SQLite and ChromaDB memory layers.
+    - **Environment Hardening:** Configured production-level environment variables for Groq, Tavily, and LangSmith to ensure secure and scalable API communication.
 
 ---
 
