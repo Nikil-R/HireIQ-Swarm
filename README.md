@@ -6,6 +6,8 @@
 ![LangGraph](https://img.shields.io/badge/LangGraph-AI_Orchestration-FF6F00.svg)
 ![Groq](https://img.shields.io/badge/Groq-Llama_3-F55036.svg)
 
+**🚀 Live Website:** [hire-iq-swarm.vercel.app](https://hire-iq-swarm.vercel.app)
+
 An autonomous multi-agent orchestration platform designed for real-time market research, candidate evaluation, and automated intelligence briefing. Powered by LangGraph, Llama 3, and a proactive semantic memory cache.
 
 ## Project Overview
