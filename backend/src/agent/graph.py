@@ -95,7 +95,13 @@ def create_agent_graph():
     import os
     
     BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    checkpoint_db = os.path.join(BASE_DIR, "checkpoints.db")
+    
+    # Check if we are running in a Docker/cloud environment with a persistent volume
+    db_path = os.getenv("DATABASE_PATH")
+    if db_path:
+        checkpoint_db = os.path.join(os.path.dirname(db_path), "checkpoints.db")
+    else:
+        checkpoint_db = os.path.join(BASE_DIR, "checkpoints.db")
     
     conn = sqlite3.connect(checkpoint_db, check_same_thread=False)
     memory = SqliteSaver(conn)

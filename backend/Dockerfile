@@ -8,9 +8,15 @@ WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-# Install system dependencies (needed for some python packages like chromadb/pydantic core etc)
+# Install system dependencies (needed for chromadb and weasyprint PDF generation)
 RUN apt-get update && apt-get install -y \
     build-essential \
+    libpango-1.0-0 \
+    libharfbuzz0b \
+    libpangoft2-1.0-0 \
+    libcairo2 \
+    libffi-dev \
+    shared-mime-info \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
