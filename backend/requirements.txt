@@ -15,3 +15,10 @@ langsmith
 pytest
 pytest-playwright
 httpx
+gunicorn
+langgraph-checkpoint-sqlite
+pymupdf
+markdown
+weasyprint
+apscheduler
+python-multipart

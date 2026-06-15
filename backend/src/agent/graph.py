@@ -25,6 +25,20 @@ def should_retry(state: AgentState) -> str:
         return "executor"
     return "synthesizer"
 
+def human_review_node(state: AgentState):
+    """Dummy node to act as a breakpoint for human review."""
+    print("--- RUNNING NODE: HUMAN REVIEW ---")
+    return {}
+
+def route_after_human_review(state: AgentState) -> str:
+    """Routes back to planner if feedback exists, else proceeds to executor."""
+    feedback = state.get("verification_feedback")
+    if feedback and feedback.lower() != "approved":
+        print(f"Human feedback received: {feedback}. Re-routing to planner.")
+        return "planner"
+    print("Human approved. Proceeding to execution.")
+    return "executor"
+
 def create_agent_graph():
 
     # Create a LangGraph workflow using AgentState as shared memory.
@@ -35,6 +49,9 @@ def create_agent_graph():
 
     # Register the Planner node in the workflow.
     workflow.add_node("planner", planner_node)
+    
+    # Register the human review breakpoint node.
+    workflow.add_node("human_review", human_review_node)
     
     # Register the Executor node in the workflow.
     workflow.add_node("executor", executor_node)
@@ -54,8 +71,11 @@ def create_agent_graph():
     # After Goal Parser finishes, move execution to Planner.
     workflow.add_edge("goal_parser", "planner")
 
-    # After Planner finishes, move execution to Executor.
-    workflow.add_edge("planner", "executor")
+    # After Planner finishes, move execution to human_review.
+    workflow.add_edge("planner", "human_review")
+    
+    # After human_review, conditionally route back to planner or proceed to executor.
+    workflow.add_conditional_edges("human_review", route_after_human_review)
 
     # After Executor finishes, move execution to Verifier.
     workflow.add_edge("executor", "verifier")
@@ -70,7 +90,18 @@ def create_agent_graph():
     workflow.add_edge("report_generator", END)
     
     # Compile the workflow graph into an executable LangGraph application.
-    app = workflow.compile()
+    import sqlite3
+    from langgraph.checkpoint.sqlite import SqliteSaver
+    import os
+    
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    checkpoint_db = os.path.join(BASE_DIR, "checkpoints.db")
+    
+    conn = sqlite3.connect(checkpoint_db, check_same_thread=False)
+    memory = SqliteSaver(conn)
+
+    # Interrupt BEFORE the human_review node so we can collect feedback!
+    app = workflow.compile(checkpointer=memory, interrupt_before=["human_review"])
 
     # Return the runnable workflow app.
     return app

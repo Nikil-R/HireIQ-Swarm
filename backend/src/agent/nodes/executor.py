@@ -47,6 +47,10 @@ def executor_node(state: AgentState) -> AgentState:
         action = step.get("action")
         description = step.get("description")
         
+        feedback = state.get("verification_feedback")
+        if feedback:
+            description = f"[USER FEEDBACK TO CONSIDER: {feedback}] " + description
+            
         print(f"  -> Executing Step {step_num}: {action}...")
         
         tool_func = TOOL_MAP.get(action)

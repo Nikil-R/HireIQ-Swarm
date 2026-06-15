@@ -1,8 +1,11 @@
-from fastapi import FastAPI, BackgroundTasks, HTTPException, Depends
+from fastapi import FastAPI, BackgroundTasks, HTTPException, Depends, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import uuid
+import json
 from sqlalchemy.orm import Session
+import fitz  # PyMuPDF
+from langchain_groq import ChatGroq
 
 # Import the LangGraph agent
 from src.agent.graph import create_agent_graph
@@ -29,9 +32,125 @@ async def log_requests(request, call_next):
     print(f"Response: {response.status_code}")
     return response
 
+@app.post("/score_candidate/{task_id}")
+async def score_candidate(task_id: str, file: UploadFile = File(...), db: Session = Depends(get_db)):
+    """
+    Ingests a candidate resume (PDF), extracts the text, and scores it against the market research report
+    for the specified task.
+    """
+    task = db.query(TaskRecord).filter(TaskRecord.task_id == task_id).first()
+    if not task or not task.report:
+        raise HTTPException(status_code=404, detail="Task or complete market report not found")
+        
+    if not file.filename.endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+        
+    try:
+        # Extract text from PDF
+        pdf_bytes = await file.read()
+        doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+        resume_text = ""
+        for page in doc:
+            resume_text += page.get_text()
+            
+        # Use LLM to score
+        import os
+        llm = ChatGroq(api_key=os.getenv("GROQ_API_KEY"), model="llama-3.1-8b-instant")
+        
+        prompt = f"""
+You are an expert technical recruiter and talent evaluator.
+Given the following Market Research Report for a specific job profile, evaluate the Candidate's Resume.
+
+MARKET RESEARCH REPORT:
+{task.report[:4000]}  # Trim to avoid context limits if necessary
+
+CANDIDATE RESUME:
+{resume_text[:4000]}
+
+Analyze how well the candidate matches the requirements, skills, and context from the report.
+Output ONLY a JSON object with two keys:
+1. "score": an integer from 1 to 100 representing the match percentage.
+2. "rationale": a 2-3 sentence explanation of the score.
+
+Do not output any markdown formatting, just the raw JSON object.
+"""
+        response = llm.invoke(prompt)
+        content = response.content.strip()
+        
+        # Clean up possible markdown code blocks
+        if content.startswith("```json"):
+            content = content[7:-3].strip()
+        elif content.startswith("```"):
+            content = content[3:-3].strip()
+            
+        result = json.loads(content)
+        return result
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+from fastapi.responses import StreamingResponse
+import markdown
+import io
+try:
+    from weasyprint import HTML
+except (ImportError, OSError, Exception) as e:
+    print(f"Warning: weasyprint could not be loaded ({e}). PDF exports will not work locally without GTK3.")
+    HTML = None
 
 # Initialize the LangGraph application
 agent_graph = create_agent_graph()
+
+@app.get("/export/{task_id}/pdf")
+async def export_pdf(task_id: str, db: Session = Depends(get_db)):
+    """
+    Exports the generated market research report as a PDF document.
+    """
+    if HTML is None:
+        raise HTTPException(status_code=500, detail="PDF generation library is not installed correctly.")
+        
+    task = db.query(TaskRecord).filter(TaskRecord.task_id == task_id).first()
+    if not task or not task.report:
+        raise HTTPException(status_code=404, detail="Task or complete market report not found")
+        
+    try:
+        # Convert markdown to HTML
+        html_content = markdown.markdown(task.report, extensions=['extra', 'tables'])
+        
+        # Wrap in basic HTML structure for better rendering
+        full_html = f"""
+        <html>
+            <head>
+                <style>
+                    body {{ font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; line-height: 1.6; color: #333; margin: 40px; }}
+                    h1, h2, h3 {{ color: #2c3e50; }}
+                    table {{ border-collapse: collapse; width: 100%; margin-bottom: 20px; }}
+                    th, td {{ border: 1px solid #ddd; padding: 8px; text-align: left; }}
+                    th {{ background-color: #f2f2f2; }}
+                    code {{ background-color: #f8f9fa; padding: 2px 4px; border-radius: 4px; }}
+                    pre {{ background-color: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; }}
+                </style>
+            </head>
+            <body>
+                {html_content}
+            </body>
+        </html>
+        """
+        
+        # Generate PDF
+        pdf_bytes = HTML(string=full_html).write_pdf()
+        
+        # Return as streaming response
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'attachment; filename="HireIQ_Report_{task_id}.pdf"'}
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"PDF generation failed: {str(e)}")
 
 @app.get("/")
 def health_check():
@@ -42,6 +161,10 @@ def health_check():
 def on_startup():
     print("--- STARTING HIREIQ BACKEND ---")
     init_db()
+    
+    from src.api.scheduler import init_scheduler
+    init_scheduler()
+    
     try:
         print("Warming up semantic memory (loading models)...")
         # Trigger model loading on start so it doesn't block the first request
@@ -64,8 +187,11 @@ def run_agent_task(task_id: str, goal: str):
     workflow_nodes = ["goal_parser", "planner", "executor", "verifier", "synthesizer", "report_generator"]
     
     try:
+        config = {"configurable": {"thread_id": task_id}}
+        
         # Use .stream() to get real-time state updates as the graph moves from node to node
-        for output in agent_graph.stream(initial_state):
+        # stream_mode="updates" is default
+        for output in agent_graph.stream(initial_state, config=config):
             for node_name, state_update in output.items():
                 task = db.query(TaskRecord).filter(TaskRecord.task_id == task_id).first()
                 if not task: continue
@@ -76,27 +202,34 @@ def run_agent_task(task_id: str, goal: str):
                     idx = workflow_nodes.index(node_name)
                     task.percentage_complete = int(((idx + 1) / len(workflow_nodes)) * 100)
                 
-                if "retry_count" in state_update:
-                    task.retry_count = state_update["retry_count"]
-                    
-                if "execution_plan" in state_update:
-                    import json
-                    task.execution_plan = json.dumps(state_update["execution_plan"])
-                    
-                if node_name == "report_generator" and "final_report" in state_update:
-                    task.report = state_update["final_report"]
+                if state_update and isinstance(state_update, dict):
+                    if "retry_count" in state_update:
+                        task.retry_count = state_update["retry_count"]
+                        
+                    if "execution_plan" in state_update:
+                        import json
+                        task.execution_plan = json.dumps(state_update["execution_plan"])
+                        
+                    if node_name == "report_generator" and "final_report" in state_update:
+                        task.report = state_update["final_report"]
                     
                 db.commit()
 
+        # Check if the graph is paused (waiting for human in the loop) or finished
+        state = agent_graph.get_state(config)
         task = db.query(TaskRecord).filter(TaskRecord.task_id == task_id).first()
         if task:
-            task.status = "completed"
-            task.percentage_complete = 100
-            db.commit()
-            
-            # Store in ChromaDB for future semantic search
-            if task.report:
-                store_report_embedding(task_id, goal, task.report)
+            if state.next:
+                task.status = "waiting_for_user"
+                db.commit()
+            else:
+                task.status = "completed"
+                task.percentage_complete = 100
+                db.commit()
+                
+                # Store in ChromaDB for future semantic search
+                if task.report:
+                    store_report_embedding(task_id, goal, task.report)
 
     except Exception as e:
         import traceback
@@ -106,6 +239,76 @@ def run_agent_task(task_id: str, goal: str):
             task.error = str(e)
             db.commit()
         print(f"--- TASK {task_id} FAILED ---")
+        traceback.print_exc()
+    finally:
+        db.close()
+
+class ResumeRequest(BaseModel):
+    feedback: str
+
+@app.post("/tasks/{task_id}/resume")
+async def resume_task(task_id: str, request: ResumeRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    task = db.query(TaskRecord).filter(TaskRecord.task_id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+        
+    config = {"configurable": {"thread_id": task_id}}
+    state = agent_graph.get_state(config)
+    
+    if not state.next:
+        raise HTTPException(status_code=400, detail="Task is not waiting for user input")
+    
+    # We update the state with the user's feedback
+    agent_graph.update_state(config, {"verification_feedback": request.feedback})
+    
+    task.status = "running"
+    db.commit()
+    
+    # We invoke the graph with None as input to resume from the checkpoint
+    background_tasks.add_task(run_agent_task_resume, task_id, task.goal)
+    return {"status": "resumed", "task_id": task_id}
+
+def run_agent_task_resume(task_id: str, goal: str):
+    """Resumes the task from where it left off."""
+    db = next(get_db())
+    workflow_nodes = ["goal_parser", "planner", "executor", "verifier", "synthesizer", "report_generator"]
+    try:
+        config = {"configurable": {"thread_id": task_id}}
+        # Resuming requires passing None as input
+        for output in agent_graph.stream(None, config=config):
+            for node_name, state_update in output.items():
+                task = db.query(TaskRecord).filter(TaskRecord.task_id == task_id).first()
+                if not task: continue
+                task.current_node = node_name
+                if node_name in workflow_nodes:
+                    idx = workflow_nodes.index(node_name)
+                    task.percentage_complete = int(((idx + 1) / len(workflow_nodes)) * 100)
+                
+                if state_update and isinstance(state_update, dict):
+                    if "final_report" in state_update:
+                        task.report = state_update["final_report"]
+                
+                db.commit()
+        
+        state = agent_graph.get_state(config)
+        task = db.query(TaskRecord).filter(TaskRecord.task_id == task_id).first()
+        if task:
+            if state.next:
+                task.status = "waiting_for_user"
+                db.commit()
+            else:
+                task.status = "completed"
+                task.percentage_complete = 100
+                db.commit()
+                if task.report:
+                    store_report_embedding(task_id, goal, task.report)
+    except Exception as e:
+        import traceback
+        task = db.query(TaskRecord).filter(TaskRecord.task_id == task_id).first()
+        if task:
+            task.status = "failed"
+            task.error = str(e)
+            db.commit()
         traceback.print_exc()
     finally:
         db.close()

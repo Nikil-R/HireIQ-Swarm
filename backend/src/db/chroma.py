@@ -4,10 +4,14 @@ import os
 # Use an absolute path for ChromaDB to ensure Render can always open it
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 CHROMA_PATH = os.getenv("CHROMA_PATH", os.path.join(BASE_DIR, "chroma_db"))
-print(f"--- CHROMA_DB INITIALIZED AT: {CHROMA_PATH} ---")
-
-# Initialize ChromaDB persistent client
-client = chromadb.PersistentClient(path=CHROMA_PATH)
+# Initialize ChromaDB client
+CHROMA_HOST = os.getenv("CHROMA_HOST")
+if CHROMA_HOST:
+    print(f"--- CONNECTING TO REMOTE CHROMA_DB AT {CHROMA_HOST} ---")
+    client = chromadb.HttpClient(host=CHROMA_HOST, port=int(os.getenv("CHROMA_PORT", "8000")))
+else:
+    print(f"--- CHROMA_DB INITIALIZED AT: {CHROMA_PATH} ---")
+    client = chromadb.PersistentClient(path=CHROMA_PATH)
 
 # Get or create collection for storing reports
 collection = client.get_or_create_collection(name="hireiq_reports")

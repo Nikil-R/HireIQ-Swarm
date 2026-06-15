@@ -108,6 +108,7 @@ const exampleQuests = [
 const agents = [
   { name: "Goal Parser", role: "Semantic Entryway", icon: <Zap className="w-6 h-6 text-yellow-500" />, desc: "Uses few-shot prompting to extract Pydantic-validated schemas from raw human intent." },
   { name: "The Architect", role: "Strategy Engine", icon: <FileText className="w-6 h-6 text-blue-500" />, desc: "Determines the complexity of the quest and dynamic node mapping into a DAG execution plan." },
+  { name: "The Human", role: "HITL Feedback Router", icon: <AlertCircle className="w-6 h-6 text-amber-500" />, desc: "Pauses the execution graph to allow the user to review the drafted strategy and dynamically route feedback." },
   { name: "The Worker", role: "Tool Specialist", icon: <Cpu className="w-6 h-6 text-purple-500" />, desc: "Bridges the LLM to the real-time web using the Tavily Search API." },
   { name: "The Judge", role: "Consistency Guard", icon: <ShieldCheck className="w-6 h-6 text-emerald-500" />, desc: "A recursive verification layer that scores output and triggers autonomous backtracking loops." },
   { name: "The Brain", role: "Knowledge Aggregator", icon: <BrainCircuit className="w-6 h-6 text-pink-500" />, desc: "Performs semantic synthesis to identify market momentum and skill gaps." },
@@ -117,9 +118,10 @@ const agents = [
 const tools = [
   { name: "Tavily AI", role: "Search Infrastructure", desc: "Optimized search engine providing noise-free context for RAG.", icon: <Globe className="w-5 h-5 text-blue-400" /> },
   { name: "Groq Llama 3", role: "Inference Engine", desc: "Powers reasoning with extremely low-latency multi-agent loops.", icon: <Zap className="w-5 h-5 text-orange-400" /> },
-  { name: "LangGraph", role: "State Orchestrator", desc: "Manages graph states, persistence, and recursive node backtracking.", icon: <Workflow className="w-5 h-5 text-blue-600" /> },
+  { name: "LangGraph", role: "State Orchestrator", desc: "Manages graph states, checkpoints for HITL, and recursive node routing.", icon: <Workflow className="w-5 h-5 text-blue-600" /> },
   { name: "ChromaDB", role: "Vector Memory", desc: "Converts past reports into vector embeddings for fast similarity retrieval.", icon: <BrainCircuit className="w-5 h-5 text-pink-400" /> },
-  { name: "SQLAlchemy", role: "Relational ORM", desc: "Handles the SQLite persistence layer for historical data logging.", icon: <Database className="w-5 h-5 text-slate-600" /> }
+  { name: "APScheduler", role: "Proactive CRON", desc: "Automates background market intelligence gathering on scheduled intervals.", icon: <History className="w-5 h-5 text-indigo-400" /> },
+  { name: "PyMuPDF & WeasyPrint", role: "Document Processing", desc: "Powers the Candidate Scoring Engine and automated PDF Report Generation.", icon: <FileText className="w-5 h-5 text-slate-600" /> }
 ];
 
 function App() {
@@ -227,16 +229,63 @@ function App() {
     setStatus({ status: "running", current_node: "report_generator", percentage_complete: 100 });
   };
 
+  const [feedback, setFeedback] = useState("");
+  const [candidateScore, setCandidateScore] = useState(null);
+  const [scoringLoading, setScoringLoading] = useState(false);
+
+  const handleScoreCandidate = async (e) => {
+    const file = e.target.files[0];
+    if (!file || !taskId) return;
+    
+    const formData = new FormData();
+    formData.append("file", file);
+    
+    try {
+      setScoringLoading(true);
+      setCandidateScore(null);
+      const res = await axios.post(`${API_URL}/score_candidate/${taskId}`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      setCandidateScore(res.data);
+    } catch (err) {
+      console.error("Error scoring candidate", err);
+      setError("Failed to score candidate resume.");
+    } finally {
+      setScoringLoading(false);
+      e.target.value = null;
+    }
+  };
+
+  const handleDownloadPDF = () => {
+    if (taskId) {
+      window.open(`${API_URL}/export/${taskId}/pdf`, '_blank');
+    }
+  };
+
+  const handleResumeTask = async () => {
+    if (!feedback.trim()) return;
+    try {
+      setLoading(true);
+      await axios.post(`${API_URL}/tasks/${taskId}/resume`, { feedback });
+      setStatus(prev => ({ ...prev, status: "running" }));
+      setFeedback("");
+    } catch (err) {
+      console.error("Error resuming task", err);
+      setError("Failed to resume task.");
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let interval = null;
 
-    if (taskId && (!status || status.status === "running")) {
+    if (taskId && (!status || status.status === "running" || status.status === "waiting_for_user")) {
       interval = setInterval(async () => {
         try {
           const res = await axios.get(`${API_URL}/status/${taskId}`);
           setStatus(res.data);
           
-          if (res.data.status === "completed" || res.data.status === "failed") {
+          if (res.data.status === "completed" || res.data.status === "failed" || res.data.status === "waiting_for_user") {
             clearInterval(interval);
             setLoading(false);
             
@@ -407,23 +456,54 @@ function App() {
                 </div>
               </div>
 
-              <div className="lg:col-span-2 bg-white p-10 rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
-                <h3 className="font-black text-slate-800 mb-8 flex items-center gap-2 uppercase tracking-widest text-xs">
-                  <LayoutList className="w-4 h-4 text-blue-600" />
-                  Dynamic Strategy Plan
-                </h3>
-                {status?.execution_plan ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                    {status.execution_plan.map((step, idx) => (
-                      <div key={idx} className="p-6 bg-slate-50 border border-slate-100 rounded-2xl group hover:bg-white hover:shadow-lg transition-all duration-300">
-                        <div className="text-[10px] font-black text-blue-600 uppercase tracking-tighter mb-2">Stage {step.step}</div>
-                        <p className="text-sm font-bold text-slate-600 leading-snug group-hover:text-slate-900">{step.description}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center py-24 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 italic text-slate-400 text-sm">
-                    Agent is architecting a custom research strategy...
+              <div className="lg:col-span-2 space-y-8">
+                <div className="bg-white p-10 rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                  <h3 className="font-black text-slate-800 mb-8 flex items-center gap-2 uppercase tracking-widest text-xs">
+                    <LayoutList className="w-4 h-4 text-blue-600" />
+                    Dynamic Strategy Plan
+                  </h3>
+                  {status?.execution_plan ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                      {status.execution_plan.map((step, idx) => (
+                        <div key={idx} className="p-6 bg-slate-50 border border-slate-100 rounded-2xl group hover:bg-white hover:shadow-lg transition-all duration-300">
+                          <div className="text-[10px] font-black text-blue-600 uppercase tracking-tighter mb-2">Stage {step.step}</div>
+                          <p className="text-sm font-bold text-slate-600 leading-snug group-hover:text-slate-900">{step.description}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center justify-center py-24 bg-slate-50/50 rounded-2xl border border-dashed border-slate-200 italic text-slate-400 text-sm">
+                      Agent is architecting a custom research strategy...
+                    </div>
+                  )}
+                </div>
+
+                {status?.status === "waiting_for_user" && (
+                  <div className="bg-amber-50 p-8 rounded-3xl border border-amber-200 shadow-sm">
+                    <h3 className="font-black text-amber-800 flex items-center gap-2 uppercase tracking-widest text-xs mb-4">
+                      <AlertCircle className="w-4 h-4" />
+                      Human-in-the-Loop Approval Required
+                    </h3>
+                    <p className="text-sm text-amber-700 mb-6">
+                      The agent has parsed your goal and drafted a research strategy. Please provide any specific feedback, direction, or simply approve the plan to proceed.
+                    </p>
+                    <div className="flex gap-4">
+                      <input
+                        type="text"
+                        value={feedback}
+                        onChange={(e) => setFeedback(e.target.value)}
+                        placeholder="E.g., 'Approved', or 'Focus more on startup companies'"
+                        className="flex-1 bg-white border border-amber-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                        onKeyDown={(e) => e.key === 'Enter' && handleResumeTask()}
+                      />
+                      <button
+                        onClick={handleResumeTask}
+                        disabled={!feedback.trim() || loading}
+                        className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold py-3 px-6 rounded-xl transition-all shadow-md text-sm whitespace-nowrap"
+                      >
+                        {loading ? "Resuming..." : "Submit & Resume"}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -454,8 +534,34 @@ function App() {
                 )}
               </div>
               <div className="bg-slate-50 px-12 py-8 border-t border-slate-100 flex items-center justify-end no-print">
-                <button onClick={() => window.print()} className="px-8 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center gap-2">Download Report PDF <ArrowRight className="w-3 h-3" /></button>
+                <button onClick={handleDownloadPDF} className="px-8 py-3 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all flex items-center gap-2">Download Report PDF <ArrowRight className="w-3 h-3" /></button>
               </div>
+            </section>
+          )}
+
+          {(status?.status === "completed" && displayedReport) && (
+            <section className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm no-print mb-12 animate-in fade-in slide-in-from-bottom-8">
+               <h3 className="font-black text-slate-800 mb-4 flex items-center gap-2 uppercase tracking-widest text-xs">
+                  <FileText className="w-4 h-4 text-blue-600" /> Candidate Resume Scoring Engine
+               </h3>
+               <p className="text-sm text-slate-500 mb-6">Upload a candidate's resume (PDF) to instantly score them against the intelligence gathered in this report.</p>
+               <div className="flex gap-4 items-center">
+                  <input type="file" accept=".pdf" id="resumeUpload" className="hidden" onChange={handleScoreCandidate} disabled={scoringLoading} />
+                  <label htmlFor="resumeUpload" className={`cursor-pointer px-6 py-3 bg-blue-50 text-blue-700 font-bold text-sm rounded-xl border border-blue-200 hover:bg-blue-100 transition-all ${scoringLoading ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                     {scoringLoading ? "Scoring Resume..." : "Upload Resume PDF"}
+                  </label>
+               </div>
+               {candidateScore && (
+                  <div className="mt-8 p-6 bg-slate-50 border border-slate-200 rounded-2xl flex items-start gap-6 animate-in fade-in slide-in-from-bottom-2">
+                     <div className="w-20 h-20 rounded-full bg-white border-4 border-blue-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+                        <span className="text-2xl font-black text-slate-800">{candidateScore.score}</span>
+                     </div>
+                     <div>
+                        <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">AI Rationale</div>
+                        <p className="text-sm font-medium text-slate-700 leading-relaxed">{candidateScore.rationale}</p>
+                     </div>
+                  </div>
+               )}
             </section>
           )}
 
@@ -537,7 +643,7 @@ function App() {
                            <span className="text-indigo-600">01</span> Every research goal is converted into a vector embedding (all-MiniLM).
                         </li>
                         <li className="text-sm font-bold text-slate-600 flex gap-3">
-                           <span className="text-indigo-600">02</span> The system queries ChromaDB for historical matches with a similarity score &gt; 0.85.
+                           <span className="text-indigo-600">02</span> The system queries ChromaDB for historical matches with an L2 distance score &lt; 1.2.
                         </li>
                         <li className="text-sm font-bold text-slate-600 flex gap-3">
                            <span className="text-indigo-600">03</span> If found, the agent retrieves the previous report instantly, bypassing new web searches.

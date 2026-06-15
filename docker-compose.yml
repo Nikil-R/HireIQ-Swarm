@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    restart: always
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    expose:
+      - "8000"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - TAVILY_API_KEY=${TAVILY_API_KEY}
+      - CHROMA_HOST=chroma
+      - CHROMA_PORT=8000
+      - DATABASE_PATH=/data/hireiq.db
+    volumes:
+      - backend_data:/data
+    depends_on:
+      - chroma
+    restart: always
+
+  chroma:
+    image: chromadb/chroma:latest
+    expose:
+      - "8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    restart: always
+
+volumes:
+  backend_data:
+  chroma_data:

@@ -30,10 +30,13 @@ def planner_node(state: AgentState) -> AgentState:
     llm = get_llm()
     structured_llm = llm.with_structured_output(ExecutionPlanSchema)
     
+    feedback = state.get("verification_feedback") or "None"
+    
     # 3. Create the prompt instructions
     prompt = ChatPromptTemplate.from_messages([
         ("system", "You are an AI workflow planner.\n"
                    "Given a structured hiring research goal, create a step-by-step execution plan.\n"
+                   "If you receive User Feedback on a previous draft, you MUST strictly modify your plan to incorporate that feedback, such as adding or changing steps.\n"
                    "Only generate steps relevant to the user's goal. Do not generate unnecessary steps.\n\n"
                    "Each step should contain:\n"
                    "- step number\n"
@@ -46,16 +49,16 @@ def planner_node(state: AgentState) -> AgentState:
                    "- fetch_salaries\n"
                    "- analyze_trends\n"
                    "- fetch_jd"),
-        ("user", "Structured Goal: {structured_goal}")
+        ("user", "Structured Goal: {structured_goal}\nUser Feedback on previous plan: {feedback}")
     ])
     
     # 4. Chain the prompt to the LLM and run it
     chain = prompt | structured_llm
-    result = chain.invoke({"structured_goal": structured_goal})
+    result = chain.invoke({"structured_goal": structured_goal, "feedback": feedback})
     print(f"Generated Plan: {result}")
     
     # 5. Convert the Pydantic result into a typed list of PlanStep TypedDicts
     execution_plan: List[PlanStep] = [PlanStep(**p.model_dump()) for p in result.plan]
     
-    # 6. Return the updated state
-    return {"execution_plan": execution_plan}
+    # 6. Return the updated state. Clear verification_feedback so it doesn't loop infinitely.
+    return {"execution_plan": execution_plan, "verification_feedback": None}

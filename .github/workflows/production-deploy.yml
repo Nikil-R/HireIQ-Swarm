@@ -1,0 +1,37 @@
+name: Production Deployment
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          cd backend
+          pip install -r requirements.txt
+      - name: Run Backend Tests
+        run: |
+          cd backend
+          # pytest
+
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Deploy to Production
+        # Replace this with your actual deployment script (e.g. appleboy/ssh-action to SSH into VPS)
+        run: |
+          echo "Add deployment steps here to build and push images or run docker-compose up on the server."
+          # docker-compose up -d --build
