@@ -10,7 +10,6 @@ pydantic
 python-dotenv
 tavily-python
 chromadb
-sentence-transformers
 langsmith
 pytest
 pytest-playwright
